@@ -712,7 +712,17 @@ func (w *SyncWorker) Start(ctx context.Context, maxWorkers int) {
 				defer cancelFn()
 
 				previousStatus := w.Status()
-				klog.V(2).Infof("Previous sync status: %#v", previousStatus)
+				klog.V(2).InfoS("Previous sync status",
+					"generation", previousStatus.Generation,
+					"done", previousStatus.Done,
+					"total", previousStatus.Total,
+					"completed", previousStatus.Completed,
+					"reconciling", previousStatus.Reconciling,
+					"initial", previousStatus.Initial,
+					"version", previousStatus.Actual.Version,
+					"image", previousStatus.Actual.Image,
+					"failure", previousStatus.Failure,
+				)
 				return w.apply(ctx, work, maxWorkers, previousStatus)
 			}()
 			if err != nil {
@@ -914,13 +924,24 @@ func (w *SyncWorker) updateApplyStatus(update SyncWorkerStatus) {
 	update.CapabilitiesStatus = w.status.CapabilitiesStatus
 	update.EnabledFeatureGates = w.status.EnabledFeatureGates.Clone()
 
-	klog.V(6).Infof("Payload apply status change %#v", update)
+	klog.V(6).InfoS("Payload apply status change",
+		"generation", update.Generation,
+		"done", update.Done,
+		"total", update.Total,
+		"reconciling", update.Reconciling,
+		"failure", update.Failure,
+	)
 	w.status = update
 	select {
 	case w.report <- update:
 	default:
 		if klog.V(6).Enabled() {
-			klog.Infof("Status report channel was full %#v", update)
+			klog.InfoS("Status report channel was full",
+				"generation", update.Generation,
+				"done", update.Done,
+				"total", update.Total,
+				"failure", update.Failure,
+			)
 		}
 	}
 }
@@ -942,13 +963,22 @@ func (w *SyncWorker) updateLoadStatus(update SyncWorkerStatus) {
 	update.VersionHash = w.status.VersionHash
 	update.LastProgress = w.status.LastProgress
 
-	klog.V(6).Infof("Payload load status change %#v", update)
+	klog.V(6).InfoS("Payload load status change",
+		"generation", update.Generation,
+		"reconciling", update.Reconciling,
+		"version", update.Actual.Version,
+		"failure", update.Failure,
+	)
 	w.status = update
 	select {
 	case w.report <- update:
 	default:
 		if klog.V(6).Enabled() {
-			klog.Infof("Status report channel was full %#v", update)
+			klog.InfoS("Status report channel was full",
+				"generation", update.Generation,
+				"reconciling", update.Reconciling,
+				"failure", update.Failure,
+			)
 		}
 	}
 }
