@@ -162,7 +162,11 @@ func (optr *Operator) syncStatus(ctx context.Context, original, config *configv1
 	if len(validationErrs) != 0 || status.Failure != nil {
 		verbosityLevel = klog.Level(2)
 	}
-	klog.V(verbosityLevel).Infof("Synchronizing status errs=%#v status=%#v", validationErrs, status)
+	// PROTOTYPE — throwaway branch proto/ocpbugs-14392-opt2-3 (OCPBUGS-14392 option 2+3)
+	klog.V(verbosityLevel).InfoS("Synchronizing status",
+		"errs", validationErrs,
+		"status", status.String(),
+	)
 
 	cvUpdated := false
 	// update the config with the latest available updates

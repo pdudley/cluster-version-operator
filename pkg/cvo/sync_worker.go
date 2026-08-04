@@ -149,6 +149,23 @@ func (w SyncWorkerStatus) DeepCopy() *SyncWorkerStatus {
 	return &copy
 }
 
+// String returns a curated summary for logs (OCPBUGS-14392 prototype option 2+3).
+// PROTOTYPE — throwaway branch proto/ocpbugs-14392-opt2-3
+func (w SyncWorkerStatus) String() string {
+	failure := "<none>"
+	if w.Failure != nil {
+		failure = w.Failure.Error()
+	}
+	loadFailure := "<none>"
+	if w.loadPayloadStatus.Failure != nil {
+		loadFailure = w.loadPayloadStatus.Failure.Error()
+	}
+	return fmt.Sprintf("generation=%d done=%d/%d completed=%d reconciling=%t initial=%t version=%q image=%q failure=%q loadPayloadStep=%q loadPayloadFailure=%q",
+		w.Generation, w.Done, w.Total, w.Completed, w.Reconciling, w.Initial,
+		w.Actual.Version, w.Actual.Image, failure,
+		w.loadPayloadStatus.Step, loadFailure)
+}
+
 // SyncWorker retrieves and applies the desired image, tracking the status for the parent to
 // monitor. The worker accepts a desired state via Update() and works to keep that state in
 // sync. Once a particular image version is synced, it will be updated no more often than
@@ -712,7 +729,8 @@ func (w *SyncWorker) Start(ctx context.Context, maxWorkers int) {
 				defer cancelFn()
 
 				previousStatus := w.Status()
-				klog.V(2).Infof("Previous sync status: %#v", previousStatus)
+				// PROTOTYPE — throwaway branch proto/ocpbugs-14392-opt2-3 (OCPBUGS-14392 option 2+3)
+				klog.V(2).InfoS("Previous sync status", "status", previousStatus.String())
 				return w.apply(ctx, work, maxWorkers, previousStatus)
 			}()
 			if err != nil {
